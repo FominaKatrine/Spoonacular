@@ -7,12 +7,6 @@ import com.fasterxml.jackson.annotation.*;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-//@JsonPropertyOrder({
-//        "results",
-//        "offset",
-//        "number",
-//        "totalResults"
-//})
 
 public class RecipeList {
 

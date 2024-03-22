@@ -2,6 +2,11 @@ package POJOClass;
 
 import com.fasterxml.jackson.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -12,70 +17,80 @@ public class Recipe {
     private Integer id;
     @JsonProperty("title")
     private String title;
-    @JsonProperty("calories")
-    private int calories;
-    @JsonProperty("carbs")
-    private String carbs;
-    @JsonProperty("fat")
-    private String fat;
-    @JsonProperty("protein")
-    private String protein;
+
+    private List<Nutrient> nutrients;
+
+
     @JsonProperty("nutrition")
-    private Nutrition nutrition;
+    public void setNutrients(HashMap<String, List<HashMap<String, String>>> nutrition) {
 
 
-    public int getCalories() {
-        return calories;
+        List<HashMap<String, String>> listNutrients = nutrition.get("nutrients");
+        nutrients = new ArrayList<>();
+        double amount;
+        for (HashMap<String, String> item : listNutrients) {
+            try {
+                amount = Double.parseDouble(item.get("amount"));
+            } catch (NumberFormatException e) {
+                amount = 0.0;
+            }
+            nutrients.add(new Nutrient(item.get("name"), amount, item.get("unit")));
+        }
     }
 
-    public void setCalories(int calories) {
-        this.calories = calories;
+    @JsonSetter("calories")
+    public void setCalories(int value) {
+        if (nutrients == null) {
+            nutrients = new ArrayList<>();
+        }
+        nutrients.add(new Nutrient("Calories", (double) value, "kkal"));
     }
 
-    public int getCarbs() {
+    @JsonSetter("protein")
+    public void setProtein(String value) {
+        if (nutrients == null) {
+            nutrients = new ArrayList<>();
+        }
+        double protein = 0.0;
         try {
-            return Integer.parseInt(this.carbs, 0, this.carbs.length() - 1, 10);
-
-        } catch (NumberFormatException e) {
-            System.out.println(e.getMessage());
-            return 0;
+            protein = Integer.parseInt(value, 0, value.length() - 1, 10);
+        } finally {
+            nutrients.add(new Nutrient("Protein", protein, "g"));
         }
 
     }
 
-    public void setCarbs(String carbs) {
-        this.carbs = carbs;
-    }
-
-    public int getFat() {
+    @JsonSetter("fat")
+    public void setFat(String value) {
+        if (nutrients == null) {
+            nutrients = new ArrayList<>();
+        }
+        double fat = 0.0;
         try {
-            return Integer.parseInt(this.fat, 0, this.fat.length() - 1, 10);
-
-        } catch (NumberFormatException e) {
-            System.out.println(e.getMessage());
-            return 0;
+            fat = Integer.parseInt(value, 0, value.length() - 1, 10);
+        } finally {
+            nutrients.add(new Nutrient("Fat", fat, "g"));
         }
 
     }
 
-    public void setFat(String fat) {
-        this.fat = fat;
-    }
-
-    public int getProtein() {
+    @JsonSetter("carbs")
+    public void setCarbs(String value) {
+        if (nutrients == null) {
+            nutrients = new ArrayList<>();
+        }
+        double carbs = 0.0;
         try {
-            return Integer.parseInt(this.protein, 0, this.protein.length() - 1, 10);
-
-        } catch (NumberFormatException e) {
-            System.out.println(e.getMessage());
-            return 0;
+            carbs = Integer.parseInt(value, 0, value.length() - 1, 10);
+        } finally {
+            nutrients.add(new Nutrient("Carbs", carbs, "g"));
         }
 
-
     }
 
-    public void setProtein(String protein) {
-        this.protein = protein;
+
+    public List<Nutrient> getNutrients() {
+        return nutrients;
     }
 
     public Integer getId() {
@@ -95,11 +110,4 @@ public class Recipe {
     }
 
 
-    public Nutrition getNutrition() {
-        return nutrition;
-    }
-
-    public void setNutrition(Nutrition nutrition) {
-        this.nutrition = nutrition;
-    }
 }

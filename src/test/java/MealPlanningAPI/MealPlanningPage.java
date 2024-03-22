@@ -1,4 +1,4 @@
-package MealPlanning;
+package MealPlanningAPI;
 
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
@@ -10,14 +10,11 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 /**
- * тестирование раздела Meal Planning Day (план на день)
+ * методы для тестирование раздела Meal Planning Day (план на день)
  */
 public class MealPlanningPage extends BasePage {
     private static RequestSpecification requestSpec;
     private static ResponseSpecification responseSpec;
-//    private static String dataMealPlan;
-//    private static String dataMealPlanEmpty;
-
 
     public MealPlanningPage() {
         requestSpec = new RequestSpecBuilder()
@@ -33,14 +30,6 @@ public class MealPlanningPage extends BasePage {
 
 
     public void addToMealPlan(String data) {
-//        Path json = Path.of("./src/test/resources/json/ingredient.json");
-//        String data = "";
-//        try {
-//            data = Files.readString(json);
-//        } catch (IOException e) {
-//            System.out.println(e.getMessage());
-//        }
-
         given()
                 .spec(requestSpec)
                 .body(data)
@@ -78,11 +67,19 @@ public class MealPlanningPage extends BasePage {
                 .body("status", equalTo("success"));
     }
 
-    /**
-     * негативный тест
-     */
+    public void deleteItemMealPlanDay(int id) {
+        given()
+                .spec(requestSpec)
+                .pathParam("id", id)
+                .when()
+                .delete("/items/{id}/")
+                .then().log().body()
+                .spec(responseSpec);
 
-    public void getMealPlanDayNegative(String dataMealPlanEmpty) {
+    }
+
+
+    public void getMealPlanDayEmpty(String dataMealPlanEmpty) {
         given()
                 .spec(requestSpec)
                 .pathParam("date", dataMealPlanEmpty)

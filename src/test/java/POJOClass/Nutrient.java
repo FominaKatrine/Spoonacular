@@ -15,7 +15,12 @@ public class Nutrient {
     private Double amount;
     @JsonProperty("unit")
     private String unit;
-//    @JsonIgnore
+
+    public Nutrient(String name, Double amount, String unit) {
+        this.name = name;
+        this.amount = amount;
+        this.unit = unit;
+    }
 
     public String getName() {
         return name;
@@ -41,4 +46,8 @@ public class Nutrient {
         this.unit = unit;
     }
 
+    @Override
+    public String toString() {
+        return name + " = " + amount + ' ' + unit;
+    }
 }

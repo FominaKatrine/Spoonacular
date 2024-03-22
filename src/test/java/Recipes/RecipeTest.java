@@ -7,12 +7,15 @@ import POJOClass.Taste;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import io.restassured.specification.ResponseSpecification;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,9 +27,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
@@ -41,6 +43,8 @@ public class RecipeTest extends AbstractTest {
     static RequestSpecification requestSpec;
     static ResponseSpecification responseSpec;
     private static final Logger logger = LoggerFactory.getLogger("testRecipe");
+    private String tasteID = "69095";
+    String recipeID = "1003464";
 
     @BeforeAll
     public static void baseSetUp() {
@@ -59,17 +63,18 @@ public class RecipeTest extends AbstractTest {
     }
 
     static Stream<Arguments> mapData() {
-        HashMap <String, Number> pasta = new HashMap<>();
+        HashMap<String, Number> pasta = new HashMap<>();
         pasta.put("maxCalories", 250.00);
         pasta.put("maxCarbs", 50.00);
         pasta.put("number", 5);
 
-        HashMap <String, Number>  apple = new HashMap<>();
+
+        HashMap<String, Number> apple = new HashMap<>();
         apple.put("maxCalories", 150.00);
         apple.put("maxFat", 10.00);
         apple.put("number", 2);
 
-        HashMap <String, Number>  chicken = new HashMap<>();
+        HashMap<String, Number> chicken = new HashMap<>();
         chicken.put("maxCalories", 350.00);
         chicken.put("minProtein", 25.00);
         chicken.put("number", 5);
@@ -78,63 +83,62 @@ public class RecipeTest extends AbstractTest {
                 Arguments.of(pasta, "pasta"),
                 Arguments.of(apple, "apple"),
                 Arguments.of(chicken, "chicken"));
-
     }
 
     @ParameterizedTest
     @MethodSource("mapData")
     @DisplayName("Search Recipes")
+    @Severity(SeverityLevel.NORMAL)
     void searchRecipesTest(HashMap<String, Double> param, String query) {
+        logger.info(String.format("поиск рецептов по названию и нутриентам. название: %s", query));
         RecipeList recipeList = given()
                 .spec(requestSpec)
                 .queryParam("query", query)
                 .queryParams(param)
                 .when()
                 .get("/complexSearch")
-                .then()
+                .then().log().body()
                 .spec(responseSpec)
                 .assertThat()
                 .body("results.title", everyItem(containsStringIgnoringCase(query)))
                 .extract()
                 .as(RecipeList.class);
 
-        // формирование листа нутриентов
-        List<Nutrient> nutrientList = recipeList.getRecipeList().stream()
-                .map(x -> x.getNutrition().getNutrients())
-                .flatMap(List::stream)
+        List<Nutrient> nutrientList = recipeList.getRecipeList()
+                .stream()
+                .flatMap(item -> item.getNutrients().stream())
                 .toList();
 
-        System.out.println(nutrientList.toString());
-        //проверим, что все нутриенты соответствуют переданным параметрам
+        nutrientList.forEach(System.out::println);
 
+        //проверим, что все нутриенты соответствуют переданным параметрам
         for (Map.Entry<String, Double> item : param.entrySet()) {
+            int i = item.getKey().length() - 1;
+            String nutrient = item.getKey().substring(3, i);
             if (item.getKey().startsWith("max")) {
-                String nutrient = item.getKey().substring(3);
-                assertThat(nutrientList.stream().filter(e -> e.getName().equals(nutrient)).toList(),
+
+                assertThat(nutrientList.stream().filter(e -> e.getName().contains(nutrient)).toList(),
                         everyItem(hasProperty("amount", lessThanOrEqualTo(item.getValue()))));
             } else if (item.getKey().startsWith("min")) {
-                String nutrient = item.getKey().substring(3);
-                assertThat(nutrientList.stream().filter(e -> e.getName().equals(nutrient)).toList(),
+
+                assertThat(nutrientList.stream().filter(e -> e.getName().contains(nutrient)).toList(),
                         everyItem(hasProperty("amount", greaterThanOrEqualTo(item.getValue()))));
             }
-
         }
-
-    //TODO тесты с взаимоисключающими параметрами (будут позже)
-
-
     }
 
-
-    @ParameterizedTest(name = "{0}: min={1}, max={2}")
-    @CsvSource(value = {" Carbs,10, 50", "Fat, 50, 100"})
+    @ParameterizedTest(name = "{0}: min={2}, max={4}")
+    @CsvSource(value = {
+            "Protein, minProtein, 10, maxProtein, 50",
+            "Fat, minFat, 50, maxFat, 100",
+            "Carbs, minCarbs, 30, maxCarbs, 130"})
     @DisplayName("Search Recipes By Nutrients")
-    void searchRecipesByNutrients(String nutrient, int minValue, int maxValue) throws JsonProcessingException {
-        //TODO сделать параметриацию для "carbs": "33g", "fat": "10g",  "protein": "2g",
-        //TODO калории  "calories": 226
+    @Severity(SeverityLevel.CRITICAL)
+    void searchRecipesByNutrients(String nutrient, String min, int minValue, String max, int maxValue) throws JsonProcessingException {
+        logger.info(String.format("поиск рецептов по нутриентам: %s. min = %d, max= %d", nutrient, minValue, maxValue));
         String response = given()
                 .spec(requestSpec)
-                .queryParams("min" + nutrient, minValue, "max" + nutrient, maxValue, "number", 2)
+                .queryParams(min, minValue, max, maxValue, "number", 2)
                 .when()
                 .get("/findByNutrients")
                 .then().log().body()
@@ -147,15 +151,21 @@ public class RecipeTest extends AbstractTest {
         });
         //TODO доделать для остальных аргументов
 
-        assertThat(recipeList, everyItem(hasProperty(nutrient.toLowerCase(), greaterThanOrEqualTo(minValue))));
-        assertThat(recipeList, everyItem(hasProperty(nutrient.toLowerCase(), lessThanOrEqualTo(maxValue))));
+        List<Nutrient> list = recipeList.stream()
+                .flatMap(e -> e.getNutrients().stream())
+                .collect(Collectors.toList())
+                .stream().filter(e -> e.getName().equals(nutrient))
+                .toList();
 
+        assertThat(list, everyItem(hasProperty("amount", greaterThanOrEqualTo((double) minValue))));
+        assertThat(list, everyItem(hasProperty("amount", lessThanOrEqualTo((double) maxValue))));
 
     }
 
     @ParameterizedTest(name = "{index} -search: {arguments}")
     @ValueSource(strings = {"chick", "cheese", "pasta"})
     @DisplayName("Autocomplete Recipe Search")
+    @Severity(SeverityLevel.CRITICAL)
     void autocompleteRecipeSearch(String query) {
         int number = 10;
         logger.info("поиск рецептов: 'Содержит в заголовке: '" + query + "'");
@@ -173,8 +183,9 @@ public class RecipeTest extends AbstractTest {
 
     @Test
     @DisplayName("Equipment by ID")
+    @Severity(SeverityLevel.NORMAL)
     void equipmentByID() {
-        String recipeID = "1003464";
+        logger.info("Поиск рецепта по ингредиентам");
         String[] equipment = {"pie form", "bowl", "oven", "frying pan"};
         given()
                 .spec(requestSpec)
@@ -190,11 +201,12 @@ public class RecipeTest extends AbstractTest {
 
     @Test
     @DisplayName("Taste by ID")
+    @Severity(SeverityLevel.MINOR)
     void tasteByID() {
-        String id = "69095";
+        logger.info("Поиск вкусовых качеств рецепта по ID: " + recipeID);
         Taste taste = given()
                 .spec(requestSpec)
-                .pathParam("id", id)
+                .pathParam("id", tasteID)
                 .when()
                 .get("{id}/tasteWidget.json")
                 .then().log().body()
@@ -208,11 +220,12 @@ public class RecipeTest extends AbstractTest {
 
     @Test
     @DisplayName("Nutrition by ID")
+    @Severity(SeverityLevel.NORMAL)
     void nutritionByID() {
-        int id = 1003464;
+        logger.info("Поиск рецепта по ID: " + recipeID);
         given()
                 .spec(requestSpec)
-                .pathParam("id", id)
+                .pathParam("id", recipeID)
                 .when()
                 .get("{id}/nutritionWidget.json")
                 .then()
@@ -222,6 +235,4 @@ public class RecipeTest extends AbstractTest {
                 .body("nutrients.find{n->n.name == \"Sugar\"}.amount", equalTo(21.98f))
                 .body("nutrients.find{n->n.name == \"Protein\"}.amount", equalTo(11.64f));
     }
-
-
 }

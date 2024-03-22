@@ -1,4 +1,4 @@
-package MealPlanning;
+package MealPlanningAPI;
 
 import io.restassured.path.json.JsonPath;
 import org.junit.jupiter.api.BeforeAll;
@@ -16,13 +16,11 @@ import java.time.format.DateTimeFormatter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * тесты для Meal Planning Day
+ * тестирование раздела Meal Planning Day (план на день)
  */
 public class MealPlanningTest {
     private static String dataMealPlan;
     private static String pathResources = "./src/test/resources/json/";
-
-    //  private static String dataMealPlanEmpty;
 
     @BeforeAll
     static void baseSetUp() {
@@ -48,13 +46,8 @@ public class MealPlanningTest {
         assertEquals(105.02f, res.getFloat("nutritionSummaryBreakfast.nutrients.find {n->n.name == \"Calories\"}.amount"));
         assertEquals(0.0f, res.getFloat("nutritionSummaryLunch.nutrients.find {n->n.name == \"Calories\"}.amount"));
         assertEquals(0.0f, res.getFloat("nutritionSummaryDinner.nutrients.find {n->n.name == \"Calories\"}.amount"));
-
     }
-
-
-
-
-    //region Service methode
+   //region Service methode
 
     /**
      * получение строки с запросом в json фрмате для добавления в планнер

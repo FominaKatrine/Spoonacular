@@ -7,4 +7,17 @@
 - RestAssured
 - Jackson
 - немного отчетов Allure
-- и скоро будет Logback
+- Logback
+
+**class RecipeTest**
+
+Цель:
+
+- показать различные способы передачи данных в параметризованные тесты
+  
+
+- показать различные варианты работы с JSON ответом.
+
+
+**Package MealPlanningAPI**
+
