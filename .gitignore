@@ -9,4 +9,4 @@ target/
 *.iml
 *.ipr
 .allure
-build/
+build
